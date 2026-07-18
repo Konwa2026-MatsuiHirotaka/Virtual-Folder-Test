@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "フォルダ構成管理基盤"
+version = "1.0.0"
+id = "artifacts/folder-organizer"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23277
+
+[services.development]
+run = "pnpm --filter @workspace/folder-organizer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/folder-organizer", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/folder-organizer/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23277"
+BASE_PATH = "/"
