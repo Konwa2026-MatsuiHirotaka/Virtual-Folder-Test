@@ -125,14 +125,14 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "nodeId and targetPath are required" });
   }
 
-  if (targetPath.trim() === node.physicalPath) {
-    return res.status(400).json({ error: "Target path is the same as the current path. Nothing to move." });
-  }
-
   const node = await db.query.nodesTable.findFirst({
     where: and(eq(nodesTable.id, nodeId), eq(nodesTable.projectId, projectId)),
   });
   if (!node) return res.status(400).json({ error: `Node "${nodeId}" not found in this project` });
+
+  if (targetPath.trim() === node.physicalPath) {
+    return res.status(400).json({ error: "Target path is the same as the current path. Nothing to move." });
+  }
 
   const allNodes = await db.select().from(nodesTable).where(eq(nodesTable.projectId, projectId));
   const issues = validateMove(node, targetPath.trim(), allNodes, project.rootPath);
