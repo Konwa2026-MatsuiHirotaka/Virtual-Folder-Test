@@ -192,12 +192,34 @@ router.post("/:planId/apply", async (req, res) => {
     return res.status(400).json({ error: "Plan failed re-validation at apply time" });
   }
 
-  // Apply: update node physicalPath and name
+  // Apply: update physicalPath, logicalPath, name, depth, and parentId
   const newName = plan.targetPath.split("/").pop() ?? node.name;
-  const relPath = plan.targetPath.replace(project.rootPath + "/", "");
-  const newDepth = relPath.split("/").length - 1;
+  // Compute path relative to project root (strip leading rootPath/)
+  const rootPrefix = project.rootPath.endsWith("/") ? project.rootPath : project.rootPath + "/";
+  const relPhysPath = plan.targetPath.startsWith(rootPrefix)
+    ? plan.targetPath.slice(rootPrefix.length)
+    : plan.targetPath;
+  const newDepth = relPhysPath.split("/").length - 1;
 
-  await db.update(nodesTable).set({ physicalPath: plan.targetPath, name: newName, depth: newDepth }).where(eq(nodesTable.id, plan.nodeId));
+  // Derive new logicalPath: keep same structure as relPhysPath
+  const newLogicalPath = relPhysPath;
+
+  // Find new parentId: look for a node whose physicalPath equals the parent directory
+  const parentPhysDir = plan.targetPath.substring(0, plan.targetPath.lastIndexOf("/"));
+  const newParentNode = allNodes.find(
+    (n) => n.id !== node.id && n.physicalPath === parentPhysDir
+  );
+  const newParentId = newParentNode?.id ?? null;
+
+  await db.update(nodesTable)
+    .set({
+      physicalPath: plan.targetPath,
+      logicalPath: newLogicalPath,
+      name: newName,
+      depth: newDepth,
+      parentId: newParentId,
+    })
+    .where(eq(nodesTable.id, plan.nodeId));
   const now = new Date();
   await db.update(movePlansTable).set({ status: "applied", appliedAt: now }).where(eq(movePlansTable.id, planId));
 
