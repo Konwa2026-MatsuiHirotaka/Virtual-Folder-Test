@@ -125,6 +125,10 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "nodeId and targetPath are required" });
   }
 
+  if (targetPath.trim() === node.physicalPath) {
+    return res.status(400).json({ error: "Target path is the same as the current path. Nothing to move." });
+  }
+
   const node = await db.query.nodesTable.findFirst({
     where: and(eq(nodesTable.id, nodeId), eq(nodesTable.projectId, projectId)),
   });

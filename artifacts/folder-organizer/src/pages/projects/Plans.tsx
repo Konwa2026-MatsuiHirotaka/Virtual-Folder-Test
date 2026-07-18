@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useParams } from 'wouter';
-import { useListPlans, getListPlansQueryKey, useApplyPlan, getGetProjectSummaryQueryKey, getGetProjectQueryKey, MovePlan } from '@workspace/api-client-react';
+import { useParams, useLocation } from 'wouter';
+import { useListPlans, getListPlansQueryKey, useApplyPlan, getGetProjectSummaryQueryKey, getGetProjectQueryKey, getValidateProjectQueryKey, MovePlan } from '@workspace/api-client-react';
 import { ProjectLayout } from '@/components/ProjectLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +63,7 @@ export function ProjectPlans() {
 function PlanCard({ plan, projectId }: { plan: MovePlan, projectId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const applyPlan = useApplyPlan();
   const [isExpanded, setIsExpanded] = useState(plan.status === 'pending');
 
@@ -84,9 +85,13 @@ function PlanCard({ plan, projectId }: { plan: MovePlan, projectId: number }) {
     applyPlan.mutate({ projectId, planId: plan.id }, {
       onSuccess: (result) => {
         toast({ title: "Plan Applied", description: `Updated ${result.nodesUpdated} nodes.` });
-        queryClient.invalidateQueries({ queryKey: getListPlansQueryKey(projectId) });
-        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
-        queryClient.invalidateQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) });
+        // Force immediate refetch (not just invalidate) so navigation shows fresh data
+        queryClient.refetchQueries({ queryKey: getGetProjectQueryKey(projectId) });
+        queryClient.refetchQueries({ queryKey: getGetProjectSummaryQueryKey(projectId) });
+        queryClient.refetchQueries({ queryKey: getListPlansQueryKey(projectId) });
+        queryClient.invalidateQueries({ queryKey: getValidateProjectQueryKey(projectId) });
+        // Navigate back to workspace so the user immediately sees the updated tree
+        setLocation(`/projects/${projectId}`);
       },
       onError: (err) => {
         toast({ variant: "destructive", title: "Apply Failed", description: (err as any).error || "An unknown error occurred" });

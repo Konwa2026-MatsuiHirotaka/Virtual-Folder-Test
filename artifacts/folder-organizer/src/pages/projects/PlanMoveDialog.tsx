@@ -34,7 +34,7 @@ export function PlanMoveDialog({ projectId, node, open, onOpenChange }: PlanMove
   const form = useForm<z.infer<typeof planMoveSchema>>({
     resolver: zodResolver(planMoveSchema),
     defaultValues: {
-      targetPath: node.physicalPath,
+      targetPath: '',
       description: `Move ${node.name}`
     }
   });
